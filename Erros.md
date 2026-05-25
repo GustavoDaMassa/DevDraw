@@ -14,6 +14,11 @@ Registro de bugs identificados e corrigidos durante o desenvolvimento.
 - Causa: `process.env.GOOGLE_CLIENT_ID` retorna `string | undefined` sem fallback.
 - Correção: Adicionar `?? ''` como fallback para cada variável de ambiente no construtor.
 
+**2026-05-24 · Fase 5 · TS2559 — TypeORM select array incompatível com FindOptionsSelect**
+- Erro: `Type 'string[]' has no properties in common with type 'FindOptionsSelect<NodeVersion>'` em `node-versions.service.ts`.
+- Causa: TypeORM v10+ mudou a tipagem de `select` em `find()` de `string[]` para `{ campo: boolean }`.
+- Correção: Substituir `select: ['id', 'nodeId', ...]` por `select: { id: true, nodeId: true, ... }`.
+
 **2026-05-24 · Fase 4 · TS4053 — tipo TokenPair não exportado não pode ser usado como retorno público**
 - Erro: `Return type of public method has or is using name 'TokenPair' from external module but cannot be named`.
 - Causa: Interface `TokenPair` era local (não exportada) em `auth.service.ts`, mas o controller refencia o método que retorna esse tipo.

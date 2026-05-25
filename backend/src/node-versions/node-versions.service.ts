@@ -20,7 +20,7 @@ export class NodeVersionsService {
     return this.versionsRepository.find({
       where: { nodeId, userId },
       order: { versionNumber: 'DESC' },
-      select: ['id', 'nodeId', 'userId', 'versionNumber', 'createdAt'],
+      select: { id: true, nodeId: true, userId: true, versionNumber: true, createdAt: true },
     })
   }
 
