@@ -11,7 +11,7 @@ interface GoogleProfile {
   avatarUrl?: string
 }
 
-interface TokenPair {
+export interface TokenPair {
   accessToken: string
   refreshToken: string
 }
