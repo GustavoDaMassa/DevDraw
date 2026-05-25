@@ -1,0 +1,28 @@
+services:
+  devdraw-postgres:
+    image: postgres:16
+    container_name: devdraw-postgres
+    environment:
+      POSTGRES_USER: devdraw
+      POSTGRES_PASSWORD: devdraw
+      POSTGRES_DB: devdraw_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - devdraw-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  devdraw-pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: devdraw-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@devdraw.local
+      PGADMIN_DEFAULT_PASSWORD: devdraw
+    ports:
+      - "5051:80"
+    depends_on:
+      - devdraw-postgres
+    restart: unless-stopped
+
+volumes:
+  devdraw-postgres-data:
