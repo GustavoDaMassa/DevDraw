@@ -14,14 +14,14 @@ export class NodeVersion {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @Column('uuid')
+  @Column({ name: 'node_id', type: 'uuid' })
   nodeId: string
 
   @ManyToOne(() => Node, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'node_id' })
   node: Node
 
-  @Column('uuid')
+  @Column({ name: 'user_id', type: 'uuid' })
   userId: string
 
   @ManyToOne(() => User)
@@ -31,9 +31,9 @@ export class NodeVersion {
   @Column({ type: 'bytea' })
   content: Buffer
 
-  @Column({ type: 'int' })
+  @Column({ name: 'version_number', type: 'int' })
   versionNumber: number
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 }

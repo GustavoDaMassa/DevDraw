@@ -11,7 +11,7 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @Column({ unique: true })
+  @Column({ name: 'google_id', unique: true })
   googleId: string
 
   @Column({ unique: true })
@@ -20,15 +20,15 @@ export class User {
   @Column()
   name: string
 
-  @Column({ nullable: true })
+  @Column({ name: 'avatar_url', nullable: true })
   avatarUrl?: string
 
-  @Column({ nullable: true })
+  @Column({ name: 'refresh_token', nullable: true })
   refreshToken?: string
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date
 }
