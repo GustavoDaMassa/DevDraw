@@ -347,11 +347,123 @@ Passport Strategy JWT. Extrai Bearer token do header, valida assinatura e retorn
 <summary><strong>nodes/ — domínio de nós (Vault)</strong></summary>
 <blockquote>
 
-> A criar na Fase 5:
-> - `node.entity.ts`
-> - `nodes.repository.ts` — inclui Recursive CTE
-> - `nodes.service.ts`
-> - `nodes.controller.ts`
+<details id="node-entity">
+<summary><strong><a href="../backend/src/nodes/node.entity.ts">node.entity.ts</a> [@Entity('nodes')]</strong></summary>
+<blockquote>
+
+<details><summary>atributos</summary><blockquote>
+
+- `id: string` (uuid PK)
+- `userId: string` (FK → [User](#user-entity))
+- `parentId?: string` (FK auto-referência — null para raiz)
+- `name: string`
+- `type: NodeType` (enum: FOLDER | FILE)
+- `content?: Buffer` (JSONB criptografado via AES-256-GCM — null se FOLDER)
+- `deletedAt?: Date` (soft delete via @DeleteDateColumn)
+- `createdAt: Date`, `updatedAt: Date`
+
+</blockquote></details>
+<details><summary>tipos</summary><blockquote>
+
+- `enum NodeType { FOLDER = 'FOLDER', FILE = 'FILE' }`
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="node-not-found-exception">
+<summary><strong><a href="../backend/src/nodes/node-not-found.exception.ts">node-not-found.exception.ts</a></strong></summary>
+<blockquote>
+
+<details><summary>extends</summary><blockquote><a href="#not-found-exception">NotFoundException</a> — `constructor(id)` → mensagem: `"Node ${id} not found"`</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="nodes-service">
+<summary><strong><a href="../backend/src/nodes/nodes.service.ts">nodes.service.ts</a> [@Injectable]</strong></summary>
+<blockquote>
+
+<details><summary>dependencias</summary><blockquote>
+
+- Repository&lt;<a href="#node-entity">Node</a>&gt;
+- DataSource (TypeORM) — para Recursive CTE raw query
+- [CryptoService](#crypto-service) — encrypt/decrypt do content
+- [NodeVersionsService](#node-versions-service)
+
+</blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `getTree(userId)` — Recursive CTE: retorna flat list sem content (sem campo pesado)
+- `findByIdOrFail(id, userId)` — busca + descriptografa content; lança [NodeNotFoundException](#node-not-found-exception)
+- `create(userId, dto)` — cria FOLDER ou FILE
+- `update(id, userId, dto)` — renomeia e/ou move (altera parentId)
+- `saveContent(id, userId, content)` — criptografa + salva + cria versão via [NodeVersionsService](#node-versions-service)
+- `softDelete(id, userId)` — seta `deletedAt`; lança [NodeNotFoundException](#node-not-found-exception) se inexistente
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="nodes-controller">
+<summary><strong><a href="../backend/src/nodes/nodes.controller.ts">nodes.controller.ts</a> [@Controller('nodes')]</strong></summary>
+<blockquote>
+
+Protegido por [JwtAuthGuard](#jwt-auth-guard) em todas as rotas.
+
+<details><summary>dependencias</summary><blockquote>
+
+- [NodesService](#nodes-service)
+- [NodeVersionsService](#node-versions-service)
+
+</blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `GET /nodes` → `getTree()`
+- `GET /nodes/:id` → `getOne()` — 404 se não encontrado
+- `POST /nodes` → `create()` com [CreateNodeDto](#create-node-dto)
+- `PATCH /nodes/:id` → `update()` com [UpdateNodeDto](#update-node-dto) — 404 se não encontrado
+- `PATCH /nodes/:id/content` → `saveContent()` com [SaveContentDto](#save-content-dto) — 204; 404 se não encontrado
+- `DELETE /nodes/:id` → `remove()` — 204; 404 se não encontrado
+- `GET /nodes/:id/versions` → `listVersions()`
+- `GET /nodes/:id/versions/:vid` → `getVersion()`
+- `POST /nodes/:id/versions/:vid/restore` → `restoreVersion()`
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="create-node-dto">
+<summary><strong><a href="../backend/src/nodes/dto/create-node.dto.ts">dto/create-node.dto.ts</a></strong></summary>
+<blockquote>
+
+`name: string`, `type: NodeType`, `parentId?: string` (UUID opcional)
+
+</blockquote>
+</details>
+
+<details id="update-node-dto">
+<summary><strong><a href="../backend/src/nodes/dto/update-node.dto.ts">dto/update-node.dto.ts</a></strong></summary>
+<blockquote>
+
+`name?: string`, `parentId?: string` (ambos opcionais)
+
+</blockquote>
+</details>
+
+<details id="save-content-dto">
+<summary><strong><a href="../backend/src/nodes/dto/save-content.dto.ts">dto/save-content.dto.ts</a></strong></summary>
+<blockquote>
+
+`content: string` — JSON serializado do estado TLDraw
+
+</blockquote>
+</details>
+
+- [nodes.module.ts](../backend/src/nodes/nodes.module.ts) — importa TypeOrmModule, CryptoModule, NodeVersionsModule
 
 </blockquote>
 </details>
@@ -360,10 +472,41 @@ Passport Strategy JWT. Extrai Bearer token do header, valida assinatura e retorn
 <summary><strong>node-versions/ — domínio de versionamento</strong></summary>
 <blockquote>
 
-> A criar na Fase 5:
-> - `node-version.entity.ts`
-> - `node-versions.service.ts`
-> - `node-versions.controller.ts`
+<details id="node-version-entity">
+<summary><strong><a href="../backend/src/node-versions/node-version.entity.ts">node-version.entity.ts</a> [@Entity('node_versions')]</strong></summary>
+<blockquote>
+
+<details><summary>atributos</summary><blockquote>
+
+- `id: string` (uuid PK)
+- `nodeId: string` (FK → [Node](#node-entity), onDelete CASCADE)
+- `userId: string` (FK → [User](#user-entity))
+- `content: Buffer` (snapshot criptografado)
+- `versionNumber: number` (int, incrementado a cada save)
+- `createdAt: Date`
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="node-versions-service">
+<summary><strong><a href="../backend/src/node-versions/node-versions.service.ts">node-versions.service.ts</a> [@Injectable]</strong></summary>
+<blockquote>
+
+<details><summary>dependencias</summary><blockquote>Repository&lt;<a href="#node-version-entity">NodeVersion</a>&gt;</blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `createVersion(nodeId, userId, content)` — conta versões existentes, incrementa e salva
+- `listVersions(nodeId, userId)` — lista sem content (campo pesado), ordenado por versionNumber DESC
+- `findVersionOrFail(nodeId, versionId, userId)` — busca versão específica; lança [NotFoundException](#not-found-exception)
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+- [node-versions.module.ts](../backend/src/node-versions/node-versions.module.ts) — exporta [NodeVersionsService](#node-versions-service)
 
 </blockquote>
 </details>
