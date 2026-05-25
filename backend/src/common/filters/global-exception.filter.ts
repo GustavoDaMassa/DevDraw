@@ -1,4 +1,4 @@
-import { ExceptionFilter, Catch, ArgumentsHost, Logger } from '@nestjs/common'
+import { ExceptionFilter, Catch, ArgumentsHost, Logger, HttpException } from '@nestjs/common'
 import { Request, Response } from 'express'
 import { AppException } from '../exceptions/app.exception'
 import { ErrorResponse } from '../dto/error-response.dto'
@@ -18,6 +18,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof AppException) {
       statusCode = exception.statusCode
       message = exception.message
+    } else if (exception instanceof HttpException) {
+      statusCode = exception.getStatus()
+      const resp = exception.getResponse()
+      message = typeof resp === 'string' ? resp : ((resp as Record<string, unknown>).message as string) ?? exception.message
     } else if (exception instanceof Error) {
       this.logger.error(exception.message, exception.stack)
     }

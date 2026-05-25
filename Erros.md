@@ -14,6 +14,16 @@ Registro de bugs identificados e corrigidos durante o desenvolvimento.
 - Causa: `process.env.GOOGLE_CLIENT_ID` retorna `string | undefined` sem fallback.
 - Correção: Adicionar `?? ''` como fallback para cada variável de ambiente no construtor.
 
+**2026-05-25 · Fase 7 · GlobalExceptionFilter retorna 500 para HttpException do NestJS**
+- Erro: `GET /nodes` sem token retornava 500 em vez de 401 nos testes de integração.
+- Causa: `JwtAuthGuard` lança `UnauthorizedException` de `@nestjs/common` (um `HttpException`), não nosso `AppException`. O filtro não tinha tratamento para `HttpException` e caía no branch de erro 500.
+- Correção: Adicionar branch `instanceof HttpException` no `GlobalExceptionFilter` antes do branch genérico `instanceof Error`.
+
+**2026-05-25 · Fase 7 · supertest is not a function — import namespace vs default**
+- Erro: `TypeError: supertest is not a function` ao chamar `supertest(app.getHttpServer())`.
+- Causa: `import * as supertest from 'supertest'` com `esModuleInterop: false` traz o namespace do módulo, não o export padrão. Para CommonJS modules com export direto de função, o `* as` pode falhar.
+- Correção: Usar `import request = require('supertest')` (TypeScript CJS interop syntax).
+
 **2026-05-24 · Fase 5 · TS2559 — TypeORM select array incompatível com FindOptionsSelect**
 - Erro: `Type 'string[]' has no properties in common with type 'FindOptionsSelect<NodeVersion>'` em `node-versions.service.ts`.
 - Causa: TypeORM v10+ mudou a tipagem de `select` em `find()` de `string[]` para `{ campo: boolean }`.
