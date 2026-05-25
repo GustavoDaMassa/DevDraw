@@ -21,14 +21,14 @@ export class Node {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @Column('uuid')
+  @Column({ name: 'user_id', type: 'uuid' })
   userId: string
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'user_id' })
   user: User
 
-  @Column('uuid', { nullable: true })
+  @Column({ name: 'parent_id', type: 'uuid', nullable: true })
   parentId?: string
 
   @ManyToOne(() => Node, (node) => node.children, { nullable: true })
@@ -47,12 +47,12 @@ export class Node {
   @Column({ type: 'bytea', nullable: true })
   content?: Buffer
 
-  @DeleteDateColumn({ nullable: true })
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date
 }

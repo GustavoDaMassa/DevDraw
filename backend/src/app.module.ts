@@ -23,6 +23,8 @@ import { NodeVersion } from './node-versions/node-version.entity'
         database: config.get('DATABASE_NAME', 'devdraw_dev'),
         entities: [User, Node, NodeVersion],
         synchronize: config.get('NODE_ENV') !== 'production',
+        migrationsRun: config.get('NODE_ENV') === 'production',
+        migrations: [__dirname + '/migrations/*.{ts,js}'],
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
