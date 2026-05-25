@@ -111,10 +111,93 @@ Service padrão gerado pelo NestJS CLI (placeholder — será removido ou substi
 <summary><strong>common/ — infraestrutura transversal</strong></summary>
 <blockquote>
 
-> Módulos a criar na Fase 4:
-> - `common/exceptions/` — hierarquia de exceções (`AppException`, `NotFoundException`, etc.)
-> - `common/filters/` — `GlobalExceptionFilter` (captura todas as exceções)
-> - `common/interceptors/` — interceptors reutilizáveis
+<details id="app-exception">
+<summary><strong><a href="../backend/src/common/exceptions/app.exception.ts">exceptions/app.exception.ts</a></strong></summary>
+<blockquote>
+
+Base de toda a hierarquia de exceções de domínio. Carrega `statusCode` e `message`.
+
+<details><summary>extends</summary><blockquote>Error</blockquote></details>
+<details><summary>atributos</summary><blockquote>
+
+- `statusCode: number` — HTTP status code a ser retornado
+- `message: string` (herdado de Error)
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="not-found-exception">
+<summary><strong><a href="../backend/src/common/exceptions/not-found.exception.ts">exceptions/not-found.exception.ts</a></strong></summary>
+<blockquote>
+
+<details><summary>extends</summary><blockquote><a href="#app-exception">AppException</a> — statusCode 404</blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `constructor(resource: string)` — mensagem: `"${resource} not found"`
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="conflict-exception">
+<summary><strong><a href="../backend/src/common/exceptions/conflict.exception.ts">exceptions/conflict.exception.ts</a></strong></summary>
+<blockquote>
+
+<details><summary>extends</summary><blockquote><a href="#app-exception">AppException</a> — statusCode 409</blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `constructor(resource: string)` — mensagem: `"${resource} already exists"`
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="unauthorized-exception">
+<summary><strong><a href="../backend/src/common/exceptions/unauthorized.exception.ts">exceptions/unauthorized.exception.ts</a></strong></summary>
+<blockquote>
+
+<details><summary>extends</summary><blockquote><a href="#app-exception">AppException</a> — statusCode 401</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="error-response-dto">
+<summary><strong><a href="../backend/src/common/dto/error-response.dto.ts">dto/error-response.dto.ts</a></strong></summary>
+<blockquote>
+
+Corpo padrão de todas as respostas de erro da API.
+
+<details><summary>atributos</summary><blockquote>
+
+- `statusCode: number`
+- `message: string`
+- `timestamp: string` — ISO 8601
+- `path: string` — URL da requisição
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="global-exception-filter">
+<summary><strong><a href="../backend/src/common/filters/global-exception.filter.ts">filters/global-exception.filter.ts</a> [@Catch()]</strong></summary>
+<blockquote>
+
+Intercepta todas as exceções e retorna [ErrorResponse](#error-response-dto) serializado.
+
+<details><summary>implements</summary><blockquote>ExceptionFilter (NestJS)</blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `catch(exception, host)` — se `AppException`: usa `statusCode`/`message`; caso contrário: loga e retorna 500
+
+</blockquote></details>
+
+</blockquote>
+</details>
 
 </blockquote>
 </details>
@@ -123,13 +206,95 @@ Service padrão gerado pelo NestJS CLI (placeholder — será removido ou substi
 <summary><strong>auth/ — autenticação</strong></summary>
 <blockquote>
 
-> A criar na Fase 4:
-> - `auth.module.ts`
-> - `auth.service.ts` — Google OAuth2, emissão e revogação de JWT
-> - `auth.controller.ts` — `/auth/google`, `/auth/google/callback`, `/auth/refresh`, `/auth/logout`
-> - `strategies/google.strategy.ts` — Passport Google OAuth2
-> - `strategies/jwt.strategy.ts` — Passport JWT para validação de access token
-> - `guards/jwt-auth.guard.ts` — protege rotas autenticadas
+<details id="auth-module">
+<summary><strong><a href="../backend/src/auth/auth.module.ts">auth.module.ts</a> [@Module]</strong></summary>
+<blockquote>
+
+<details><summary>imports</summary><blockquote>UsersModule, PassportModule, JwtModule</blockquote></details>
+<details><summary>providers</summary><blockquote><a href="#auth-service">AuthService</a>, <a href="#google-strategy">GoogleStrategy</a>, <a href="#jwt-strategy">JwtStrategy</a></blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="auth-service">
+<summary><strong><a href="../backend/src/auth/auth.service.ts">auth.service.ts</a> [@Injectable]</strong></summary>
+<blockquote>
+
+<details><summary>dependencias</summary><blockquote>
+
+- [UsersService](#users-service)
+- JwtService (NestJS)
+
+</blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `validateGoogleUser(profile)` — delega para `UsersService.findOrCreate`
+- `generateTokens(user)` — emite access (15min) + refresh (7d) e persiste refresh
+- `refreshTokens(userId, token)` — valida token armazenado, rota novo par; lança [UnauthorizedException](#unauthorized-exception)
+- `logout(userId)` — limpa refreshToken no banco
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="auth-controller">
+<summary><strong><a href="../backend/src/auth/auth.controller.ts">auth.controller.ts</a> [@Controller('auth')]</strong></summary>
+<blockquote>
+
+<details><summary>dependencias</summary><blockquote><a href="#auth-service">AuthService</a></blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `GET /auth/google` — redireciona para Google OAuth (guard: `AuthGuard('google')`)
+- `GET /auth/google/callback` — callback OAuth; redireciona ao frontend com tokens na URL
+- `POST /auth/refresh` — recebe [RefreshTokenDto](#refresh-token-dto), retorna novo par
+- `POST /auth/logout` — guard: [JwtAuthGuard](#jwt-auth-guard); limpa sessão
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="google-strategy">
+<summary><strong><a href="../backend/src/auth/strategies/google.strategy.ts">strategies/google.strategy.ts</a> [@Injectable]</strong></summary>
+<blockquote>
+
+Passport Strategy para Google OAuth2. Extrai perfil e delega para [AuthService.validateGoogleUser](#auth-service).
+
+</blockquote>
+</details>
+
+<details id="jwt-strategy">
+<summary><strong><a href="../backend/src/auth/strategies/jwt.strategy.ts">strategies/jwt.strategy.ts</a> [@Injectable]</strong></summary>
+<blockquote>
+
+Passport Strategy JWT. Extrai Bearer token do header, valida assinatura e retorna `{ id, email }`.
+
+</blockquote>
+</details>
+
+<details id="jwt-auth-guard">
+<summary><strong><a href="../backend/src/auth/guards/jwt-auth.guard.ts">guards/jwt-auth.guard.ts</a> [@Injectable]</strong></summary>
+<blockquote>
+
+<details><summary>extends</summary><blockquote>AuthGuard('jwt') — protege rotas autenticadas</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="refresh-token-dto">
+<summary><strong><a href="../backend/src/auth/dto/refresh-token.dto.ts">dto/refresh-token.dto.ts</a></strong></summary>
+<blockquote>
+
+<details><summary>atributos</summary><blockquote>
+
+- `userId: string` (@IsUUID)
+- `refreshToken: string` (@IsString)
+
+</blockquote></details>
+
+</blockquote>
+</details>
 
 </blockquote>
 </details>
@@ -138,11 +303,42 @@ Service padrão gerado pelo NestJS CLI (placeholder — será removido ou substi
 <summary><strong>users/ — domínio de usuários</strong></summary>
 <blockquote>
 
-> A criar na Fase 5:
-> - `user.entity.ts`
-> - `users.repository.ts`
-> - `users.service.ts`
-> - `users.controller.ts`
+<details id="user-entity">
+<summary><strong><a href="../backend/src/users/user.entity.ts">user.entity.ts</a> [@Entity('users')]</strong></summary>
+<blockquote>
+
+<details><summary>atributos</summary><blockquote>
+
+- `id: string` (@PrimaryGeneratedColumn uuid)
+- `googleId: string` (unique)
+- `email: string` (unique)
+- `name: string`
+- `avatarUrl?: string` (nullable)
+- `refreshToken?: string` (nullable — null quando deslogado)
+- `createdAt: Date`, `updatedAt: Date`
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+<details id="users-service">
+<summary><strong><a href="../backend/src/users/users.service.ts">users.service.ts</a> [@Injectable]</strong></summary>
+<blockquote>
+
+<details><summary>dependencias</summary><blockquote>Repository&lt;<a href="#user-entity">User</a>&gt; (@InjectRepository)</blockquote></details>
+<details><summary>metodos</summary><blockquote>
+
+- `findOrCreate(profile)` — busca por `googleId`; cria se não existir
+- `findById(id)` — busca por PK
+- `updateRefreshToken(userId, token)` — persiste ou limpa o refresh token
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+- [users.module.ts](../backend/src/users/users.module.ts) — registra `TypeOrmModule.forFeature([User])` e exporta `UsersService`
 
 </blockquote>
 </details>
@@ -176,7 +372,25 @@ Service padrão gerado pelo NestJS CLI (placeholder — será removido ou substi
 <summary><strong>crypto/ — serviço de criptografia (transversal)</strong></summary>
 <blockquote>
 
-> A criar na Fase 4:
+<details id="crypto-service">
+<summary><strong><a href="../backend/src/crypto/crypto.service.ts">crypto.service.ts</a> [@Injectable]</strong></summary>
+<blockquote>
+
+Criptografia AES-256-GCM com chave derivada por usuário via HMAC-SHA256.
+
+<details><summary>metodos</summary><blockquote>
+
+- `encrypt(plaintext, userId): Buffer` — IV aleatório (12 bytes) + authTag (16 bytes) + ciphertext
+- `decrypt(data, userId): string` — extrai IV/authTag, decifra; lança se authTag inválido
+
+</blockquote></details>
+
+</blockquote>
+</details>
+
+- [crypto.module.ts](../backend/src/crypto/crypto.module.ts) — exporta [CryptoService](#crypto-service) para outros módulos
+
+> Anteriormente a criar na Fase 4 — concluído.
 > - `crypto.service.ts` — AES-256-GCM, `encrypt(data, userId)` e `decrypt(buffer, userId)`
 > - `crypto.module.ts`
 
