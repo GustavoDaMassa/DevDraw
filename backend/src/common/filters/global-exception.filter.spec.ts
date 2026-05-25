@@ -1,4 +1,4 @@
-import { ArgumentsHost } from '@nestjs/common'
+import { ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common'
 import { GlobalExceptionFilter } from './global-exception.filter'
 import { NotFoundException } from '../exceptions/not-found.exception'
 import { ConflictException } from '../exceptions/conflict.exception'
@@ -45,6 +45,16 @@ describe('GlobalExceptionFilter', () => {
     expect(mockStatus).toHaveBeenCalledWith(500)
     expect(mockJson).toHaveBeenCalledWith(
       expect.objectContaining({ statusCode: 500, message: 'Internal server error', path: '/test' }),
+    )
+  })
+
+  it('should handle NestJS HttpException with correct status', () => {
+    const exception = new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED)
+    filter.catch(exception, mockHost)
+
+    expect(mockStatus).toHaveBeenCalledWith(401)
+    expect(mockJson).toHaveBeenCalledWith(
+      expect.objectContaining({ statusCode: 401 }),
     )
   })
 
