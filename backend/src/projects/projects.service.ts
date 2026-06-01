@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { Project } from './project.entity'
 import { ProjectMember, ProjectRole } from './project-member.entity'
 import { ProjectNotFoundException } from './project-not-found.exception'
@@ -27,9 +27,11 @@ export class ProjectsService {
   async findAllByUser(userId: string): Promise<Project[]> {
     const memberships = await this.membersRepository.find({
       where: { userId },
-      relations: ['project'],
+      select: { projectId: true },
     })
-    return memberships.map((m) => m.project)
+    const projectIds = memberships.map((m) => m.projectId)
+    if (projectIds.length === 0) return []
+    return this.projectsRepository.find({ where: { id: In(projectIds) } })
   }
 
   async findByIdOrFail(projectId: string, userId: string): Promise<Project> {

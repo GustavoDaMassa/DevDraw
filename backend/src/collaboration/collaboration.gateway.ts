@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt'
 import { Server, Socket } from 'socket.io'
 import { CollaborationService } from './collaboration.service'
 import { ProjectsService } from '../projects/projects.service'
+import { UsersService } from '../users/users.service'
 
 interface JoinCanvasPayload {
   nodeId: string
@@ -49,6 +50,7 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
   constructor(
     private readonly collaborationService: CollaborationService,
     private readonly projectsService: ProjectsService,
+    private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -60,10 +62,14 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
 
       if (!token) throw new WsException('Missing token')
 
-      const payload = this.jwtService.verify(token) as { id: string; name: string; avatarUrl?: string }
-      client.userId = payload.id
-      client.userName = payload.name
-      client.userAvatar = payload.avatarUrl
+      const payload = this.jwtService.verify(token) as { sub: string; email: string }
+      const user = await this.usersService.findById(payload.sub)
+
+      if (!user) throw new WsException('User not found')
+
+      client.userId = user.id
+      client.userName = user.name
+      client.userAvatar = user.avatarUrl
     } catch {
       this.logger.warn(`Rejected unauthenticated connection: ${client.id}`)
       client.disconnect()

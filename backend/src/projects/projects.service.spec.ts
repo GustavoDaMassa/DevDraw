@@ -71,12 +71,13 @@ describe('ProjectsService', () => {
 
   describe('findAllByUser', () => {
     it('should return all projects where user is a member', async () => {
-      memberRepo.find.mockResolvedValue([mockMember()])
-      projectRepo.findOne.mockResolvedValue(mockProject())
+      memberRepo.find.mockResolvedValue([mockMember({ projectId: 'proj-1' })])
+      projectRepo.find.mockResolvedValue([mockProject()])
 
       const result = await service.findAllByUser('user-1')
 
       expect(memberRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'user-1' } }))
+      expect(projectRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: { id: expect.anything() } }))
       expect(result).toHaveLength(1)
     })
   })
