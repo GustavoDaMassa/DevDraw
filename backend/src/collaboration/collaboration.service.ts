@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import * as Y from 'yjs'
@@ -13,6 +13,7 @@ export interface PresenceInfo {
 
 @Injectable()
 export class CollaborationService {
+  private readonly logger = new Logger(CollaborationService.name)
   private readonly docs = new Map<string, Y.Doc>()
   private readonly presence = new Map<string, Map<string, PresenceInfo>>()
 
@@ -50,8 +51,12 @@ export class CollaborationService {
     const doc = this.docs.get(nodeId)
     if (!doc) return
 
-    const state = Buffer.from(Y.encodeStateAsUpdate(doc))
-    await this.nodesRepository.update(nodeId, { syncState: state })
+    try {
+      const state = Buffer.from(Y.encodeStateAsUpdate(doc))
+      await this.nodesRepository.update(nodeId, { syncState: state })
+    } catch (err: unknown) {
+      this.logger.warn(`Could not persist doc ${nodeId}: ${(err as Error).message}`)
+    }
   }
 
   setPresence(nodeId: string, socketId: string, info: PresenceInfo): void {

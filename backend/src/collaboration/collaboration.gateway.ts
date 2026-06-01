@@ -34,6 +34,7 @@ interface AuthenticatedSocket extends Socket {
   userId: string
   userName: string
   userAvatar?: string
+  _authReady: Promise<void>
 }
 
 @WebSocketGateway({
@@ -54,7 +55,11 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
     private readonly jwtService: JwtService,
   ) {}
 
-  async handleConnection(client: AuthenticatedSocket): Promise<void> {
+  handleConnection(client: AuthenticatedSocket): void {
+    client._authReady = this._authenticate(client)
+  }
+
+  private async _authenticate(client: AuthenticatedSocket): Promise<void> {
     try {
       const token =
         (client.handshake.auth?.token as string) ??
@@ -98,6 +103,9 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: JoinCanvasPayload,
   ): Promise<void> {
+    await client._authReady
+    if (!client.userId) throw new WsException('Not authenticated')
+
     const { nodeId, projectId } = payload
 
     try {
@@ -138,6 +146,7 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
   async handleLeaveCanvas(
     @ConnectedSocket() client: AuthenticatedSocket,
   ): Promise<void> {
+    await client._authReady
     const nodeId = this.socketRooms.get(client.id)
     if (!nodeId) return
 
@@ -157,10 +166,11 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
   }
 
   @SubscribeMessage('sync-update')
-  handleSyncUpdate(
+  async handleSyncUpdate(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: SyncUpdatePayload,
-  ): void {
+  ): Promise<void> {
+    await client._authReady
     const { nodeId, update } = payload
     const currentRoom = this.socketRooms.get(client.id)
 
@@ -171,10 +181,11 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
   }
 
   @SubscribeMessage('presence')
-  handlePresence(
+  async handlePresence(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: PresencePayload,
-  ): void {
+  ): Promise<void> {
+    await client._authReady
     const { nodeId, cursor } = payload
     const currentRoom = this.socketRooms.get(client.id)
 
