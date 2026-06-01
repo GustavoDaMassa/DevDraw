@@ -7,6 +7,7 @@ import { CryptoModule } from './crypto/crypto.module'
 import { ProjectsModule } from './projects/projects.module'
 import { InvitationsModule } from './invitations/invitations.module'
 import { NodesModule } from './nodes/nodes.module'
+import { CollaborationModule } from './collaboration/collaboration.module'
 import { User } from './users/user.entity'
 import { Project } from './projects/project.entity'
 import { ProjectMember } from './projects/project-member.entity'
@@ -38,6 +39,7 @@ import { NodeVersion } from './node-versions/node-version.entity'
     ProjectsModule,
     InvitationsModule,
     NodesModule,
+    CollaborationModule,
   ],
 })
 export class AppModule {}

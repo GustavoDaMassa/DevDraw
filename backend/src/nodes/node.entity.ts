@@ -55,6 +55,9 @@ export class Node {
   @Column({ type: 'bytea', nullable: true })
   content?: Buffer
 
+  @Column({ name: 'sync_state', type: 'bytea', nullable: true })
+  syncState?: Buffer
+
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date
 
