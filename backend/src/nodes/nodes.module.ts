@@ -5,9 +5,10 @@ import { NodesService } from './nodes.service'
 import { NodesController } from './nodes.controller'
 import { CryptoModule } from '../crypto/crypto.module'
 import { NodeVersionsModule } from '../node-versions/node-versions.module'
+import { ProjectsModule } from '../projects/projects.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Node]), CryptoModule, NodeVersionsModule],
+  imports: [TypeOrmModule.forFeature([Node]), CryptoModule, NodeVersionsModule, ProjectsModule],
   providers: [NodesService],
   controllers: [NodesController],
 })

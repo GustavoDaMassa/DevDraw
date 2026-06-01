@@ -10,6 +10,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm'
 import { User } from '../users/user.entity'
+import { Project } from '../projects/project.entity'
 
 export enum NodeType {
   FOLDER = 'FOLDER',
@@ -21,12 +22,19 @@ export class Node {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @Column({ name: 'user_id', type: 'uuid' })
-  userId: string
+  @Column({ name: 'project_id', type: 'uuid' })
+  projectId: string
+
+  @ManyToOne(() => Project, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'project_id' })
+  project: Project
+
+  @Column({ name: 'created_by', type: 'uuid' })
+  createdBy: string
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'user_id' })
-  user: User
+  @JoinColumn({ name: 'created_by' })
+  creator: User
 
   @Column({ name: 'parent_id', type: 'uuid', nullable: true })
   parentId?: string

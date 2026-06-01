@@ -5,6 +5,8 @@ import { Node, NodeType } from './node.entity'
 import { NodeNotFoundException } from './node-not-found.exception'
 import { CryptoService } from '../crypto/crypto.service'
 import { NodeVersionsService } from '../node-versions/node-versions.service'
+import { ProjectsService } from '../projects/projects.service'
+import { ProjectRole } from '../projects/project-member.entity'
 
 interface CreateNodeDto {
   name: string
@@ -17,6 +19,8 @@ interface UpdateNodeDto {
   parentId?: string | null
 }
 
+const WRITE_ROLES = [ProjectRole.OWNER, ProjectRole.EDITOR]
+
 @Injectable()
 export class NodesService {
   constructor(
@@ -25,40 +29,45 @@ export class NodesService {
     private readonly dataSource: DataSource,
     private readonly cryptoService: CryptoService,
     private readonly nodeVersionsService: NodeVersionsService,
+    private readonly projectsService: ProjectsService,
   ) {}
 
-  async getTree(userId: string): Promise<Node[]> {
+  async getTree(projectId: string, userId: string): Promise<Node[]> {
+    await this.projectsService.assertMembership(projectId, userId)
     return this.dataSource.query(
       `WITH RECURSIVE tree AS (
-        SELECT * FROM nodes WHERE parent_id IS NULL AND user_id = $1 AND deleted_at IS NULL
+        SELECT * FROM nodes WHERE parent_id IS NULL AND project_id = $1 AND deleted_at IS NULL
         UNION ALL
         SELECT n.* FROM nodes n INNER JOIN tree t ON n.parent_id = t.id WHERE n.deleted_at IS NULL
-      ) SELECT id, user_id, parent_id, name, type, created_at, updated_at FROM tree ORDER BY type, name`,
-      [userId],
+      ) SELECT id, project_id, created_by, parent_id, name, type, created_at, updated_at FROM tree ORDER BY type, name`,
+      [projectId],
     )
   }
 
-  async findByIdOrFail(id: string, userId: string): Promise<Node> {
+  async findByIdOrFail(id: string, projectId: string, userId: string): Promise<Node> {
+    await this.projectsService.assertMembership(projectId, userId)
     const node = await this.nodesRepository.findOne({
-      where: { id, userId, deletedAt: IsNull() },
+      where: { id, projectId, deletedAt: IsNull() },
     })
     if (!node) throw new NodeNotFoundException(id)
 
     if (node.content) {
-      const plaintext = this.cryptoService.decrypt(node.content, userId)
+      const plaintext = this.cryptoService.decrypt(node.content, projectId)
       node.content = Buffer.from(plaintext)
     }
     return node
   }
 
-  async create(userId: string, dto: CreateNodeDto): Promise<Node> {
-    const node = this.nodesRepository.create({ ...dto, userId })
+  async create(projectId: string, userId: string, dto: CreateNodeDto): Promise<Node> {
+    await this.projectsService.assertMembership(projectId, userId, WRITE_ROLES)
+    const node = this.nodesRepository.create({ ...dto, projectId, createdBy: userId })
     return this.nodesRepository.save(node)
   }
 
-  async update(id: string, userId: string, dto: UpdateNodeDto): Promise<Node> {
+  async update(id: string, projectId: string, userId: string, dto: UpdateNodeDto): Promise<Node> {
+    await this.projectsService.assertMembership(projectId, userId, WRITE_ROLES)
     const node = await this.nodesRepository.findOne({
-      where: { id, userId, deletedAt: IsNull() },
+      where: { id, projectId, deletedAt: IsNull() },
     })
     if (!node) throw new NodeNotFoundException(id)
 
@@ -68,21 +77,23 @@ export class NodesService {
     return this.nodesRepository.save(node)
   }
 
-  async saveContent(id: string, userId: string, content: string): Promise<void> {
+  async saveContent(id: string, projectId: string, userId: string, content: string): Promise<void> {
+    await this.projectsService.assertMembership(projectId, userId, WRITE_ROLES)
     const node = await this.nodesRepository.findOne({
-      where: { id, userId, deletedAt: IsNull() },
+      where: { id, projectId, deletedAt: IsNull() },
     })
     if (!node) throw new NodeNotFoundException(id)
 
-    const encrypted = this.cryptoService.encrypt(content, userId)
+    const encrypted = this.cryptoService.encrypt(content, projectId)
     node.content = encrypted
     await this.nodesRepository.save(node)
     await this.nodeVersionsService.createVersion(id, userId, encrypted)
   }
 
-  async softDelete(id: string, userId: string): Promise<void> {
+  async softDelete(id: string, projectId: string, userId: string): Promise<void> {
+    await this.projectsService.assertMembership(projectId, userId, WRITE_ROLES)
     const node = await this.nodesRepository.findOne({
-      where: { id, userId, deletedAt: IsNull() },
+      where: { id, projectId, deletedAt: IsNull() },
     })
     if (!node) throw new NodeNotFoundException(id)
 
