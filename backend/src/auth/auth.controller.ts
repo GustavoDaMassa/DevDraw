@@ -14,11 +14,25 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { RefreshTokenDto } from './dto/refresh-token.dto'
+import { RegisterDto } from './dto/register.dto'
+import { LoginDto } from './dto/login.dto'
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @ApiOperation({ summary: 'Register a new account with email and password' })
+  @Post('register')
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto)
+  }
+
+  @ApiOperation({ summary: 'Login with email and password' })
+  @Post('login')
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto)
+  }
 
   @ApiOperation({ summary: 'Redirect to Google OAuth2 login page' })
   @Get('google')

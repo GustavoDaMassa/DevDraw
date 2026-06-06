@@ -11,6 +11,7 @@ const mockUser: User = {
   name: 'Dev User',
   avatarUrl: 'https://avatar.url',
   refreshToken: undefined,
+  passwordHash: undefined,
   createdAt: new Date(),
   updatedAt: new Date(),
 }
@@ -69,6 +70,44 @@ describe('UsersService', () => {
       expect(repo.create).toHaveBeenCalled()
       expect(repo.save).toHaveBeenCalled()
       expect(result).toBe(mockUser)
+    })
+  })
+
+  describe('findByEmail', () => {
+    it('should return user when found by email', async () => {
+      repo.findOne.mockResolvedValue(mockUser)
+
+      const result = await service.findByEmail('dev@example.com')
+
+      expect(repo.findOne).toHaveBeenCalledWith({ where: { email: 'dev@example.com' } })
+      expect(result).toBe(mockUser)
+    })
+
+    it('should return null when user not found', async () => {
+      repo.findOne.mockResolvedValue(null)
+
+      const result = await service.findByEmail('nope@example.com')
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('createLocal', () => {
+    it('should create user without googleId', async () => {
+      const localUser = { ...mockUser, googleId: undefined, passwordHash: 'hashed' }
+      repo.create.mockReturnValue(localUser as User)
+      repo.save.mockResolvedValue(localUser as User)
+
+      const result = await service.createLocal({
+        email: 'dev@example.com',
+        name: 'Dev User',
+        passwordHash: 'hashed',
+      })
+
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'dev@example.com', passwordHash: 'hashed' }),
+      )
+      expect(result).toBe(localUser)
     })
   })
 

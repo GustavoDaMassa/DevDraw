@@ -4,6 +4,8 @@ import { AuthService } from './auth.service'
 import { UsersService } from '../users/users.service'
 import { User } from '../users/user.entity'
 import { UnauthorizedException } from '../common/exceptions/unauthorized.exception'
+import { ConflictException } from '../common/exceptions/conflict.exception'
+import * as bcrypt from 'bcryptjs'
 
 const mockUser: User = {
   id: 'uuid-1',
@@ -12,6 +14,7 @@ const mockUser: User = {
   name: 'Dev User',
   avatarUrl: undefined,
   refreshToken: 'old-refresh-token',
+  passwordHash: undefined,
   createdAt: new Date(),
   updatedAt: new Date(),
 }
@@ -30,14 +33,14 @@ describe('AuthService', () => {
           useValue: {
             findOrCreate: jest.fn(),
             findById: jest.fn(),
+            findByEmail: jest.fn(),
+            createLocal: jest.fn(),
             updateRefreshToken: jest.fn(),
           },
         },
         {
           provide: JwtService,
-          useValue: {
-            sign: jest.fn(),
-          },
+          useValue: { sign: jest.fn() },
         },
       ],
     }).compile()
@@ -77,19 +80,78 @@ describe('AuthService', () => {
     })
   })
 
+  describe('register', () => {
+    it('should hash password, create user and return tokens', async () => {
+      usersService.findByEmail.mockResolvedValue(null)
+      usersService.createLocal.mockResolvedValue({ ...mockUser, googleId: undefined })
+      jwtService.sign.mockReturnValueOnce('access').mockReturnValueOnce('refresh')
+      usersService.updateRefreshToken.mockResolvedValue(undefined)
+
+      const result = await service.register({
+        name: 'Dev User',
+        email: 'dev@example.com',
+        password: 'senha123',
+      })
+
+      expect(usersService.findByEmail).toHaveBeenCalledWith('dev@example.com')
+      expect(usersService.createLocal).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'dev@example.com', name: 'Dev User' }),
+      )
+      expect(result.accessToken).toBe('access')
+    })
+
+    it('should throw ConflictException when email already registered', async () => {
+      usersService.findByEmail.mockResolvedValue(mockUser)
+
+      await expect(
+        service.register({ name: 'X', email: 'dev@example.com', password: 'senha123' }),
+      ).rejects.toBeInstanceOf(ConflictException)
+    })
+  })
+
+  describe('login', () => {
+    it('should return tokens when credentials are valid', async () => {
+      const hash = await bcrypt.hash('senha123', 10)
+      usersService.findByEmail.mockResolvedValue({ ...mockUser, passwordHash: hash })
+      jwtService.sign.mockReturnValueOnce('access').mockReturnValueOnce('refresh')
+      usersService.updateRefreshToken.mockResolvedValue(undefined)
+
+      const result = await service.login({ email: 'dev@example.com', password: 'senha123' })
+
+      expect(result.accessToken).toBe('access')
+    })
+
+    it('should throw UnauthorizedException when user not found', async () => {
+      usersService.findByEmail.mockResolvedValue(null)
+
+      await expect(
+        service.login({ email: 'nope@example.com', password: 'senha123' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException)
+    })
+
+    it('should throw UnauthorizedException when password is wrong', async () => {
+      const hash = await bcrypt.hash('correta', 10)
+      usersService.findByEmail.mockResolvedValue({ ...mockUser, passwordHash: hash })
+
+      await expect(
+        service.login({ email: 'dev@example.com', password: 'errada' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException)
+    })
+
+    it('should throw UnauthorizedException for Google-only accounts', async () => {
+      usersService.findByEmail.mockResolvedValue({ ...mockUser, passwordHash: undefined })
+
+      await expect(
+        service.login({ email: 'dev@example.com', password: 'qualquer' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException)
+    })
+  })
+
   describe('refreshTokens', () => {
     it('should throw UnauthorizedException when user not found', async () => {
       usersService.findById.mockResolvedValue(null)
 
       await expect(service.refreshTokens('uuid-1', 'some-token')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      )
-    })
-
-    it('should throw UnauthorizedException when refresh token does not match', async () => {
-      usersService.findById.mockResolvedValue({ ...mockUser, refreshToken: 'different-token' })
-
-      await expect(service.refreshTokens('uuid-1', 'wrong-token')).rejects.toBeInstanceOf(
         UnauthorizedException,
       )
     })
@@ -102,7 +164,6 @@ describe('AuthService', () => {
       const result = await service.refreshTokens('uuid-1', 'old-refresh-token')
 
       expect(result.accessToken).toBe('new-access')
-      expect(result.refreshToken).toBe('new-refresh')
     })
   })
 

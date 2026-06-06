@@ -11,8 +11,11 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string
 
-  @Column({ name: 'google_id', unique: true })
-  googleId: string
+  @Column({ name: 'google_id', unique: true, nullable: true })
+  googleId?: string
+
+  @Column({ name: 'password_hash', nullable: true })
+  passwordHash?: string
 
   @Column({ unique: true })
   email: string
