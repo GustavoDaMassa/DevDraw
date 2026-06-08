@@ -15,6 +15,6 @@ export default new DataSource({
   password: process.env.DATABASE_PASSWORD ?? 'devdraw',
   database: process.env.DATABASE_NAME ?? 'devdraw_dev',
   entities: [User, Project, ProjectMember, Invitation, Node, NodeVersion],
-  migrations: ['src/migrations/*.ts'],
+  migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false,
 })
