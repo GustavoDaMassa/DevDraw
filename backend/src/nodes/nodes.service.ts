@@ -39,7 +39,7 @@ export class NodesService {
         SELECT * FROM nodes WHERE parent_id IS NULL AND project_id = $1 AND deleted_at IS NULL
         UNION ALL
         SELECT n.* FROM nodes n INNER JOIN tree t ON n.parent_id = t.id WHERE n.deleted_at IS NULL
-      ) SELECT id, project_id, created_by, parent_id, name, type, created_at, updated_at FROM tree ORDER BY type, name`,
+      ) SELECT id, project_id AS "projectId", created_by AS "createdBy", parent_id AS "parentId", name, type, created_at AS "createdAt", updated_at AS "updatedAt" FROM tree ORDER BY type, name`,
       [projectId],
     )
   }
@@ -53,7 +53,7 @@ export class NodesService {
 
     if (node.content) {
       const plaintext = this.cryptoService.decrypt(node.content, projectId)
-      node.content = Buffer.from(plaintext)
+      ;(node as any).content = plaintext
     }
     return node
   }

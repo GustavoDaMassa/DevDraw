@@ -111,7 +111,7 @@ describe('NodesService', () => {
       const result = await service.findByIdOrFail('node-1', 'proj-1', 'user-1')
 
       expect(cryptoService.decrypt).toHaveBeenCalledWith(encrypted, 'proj-1')
-      expect(result.content).toEqual(Buffer.from('{"type":"draw"}'))
+      expect(result.content).toEqual('{"type":"draw"}')
     })
   })
 
