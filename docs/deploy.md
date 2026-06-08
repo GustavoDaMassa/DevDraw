@@ -26,8 +26,8 @@ Configure em **Settings → Secrets and variables → Actions**:
 
 | Secret | Descrição |
 |---|---|
-| `DOCKERHUB_USERNAME` | Usuário do Docker Hub (`gustavodamassa`) |
-| `DOCKERHUB_TOKEN` | Access Token do Docker Hub (não a senha — gere em Account Settings → Security) |
+| `DOCKER_USERNAME` | Usuário do Docker Hub (`gustavodamassa`) |
+| `DOCKER_TOKEN` | Access Token do Docker Hub (não a senha — gere em Account Settings → Security) |
 
 ---
 
