@@ -104,7 +104,7 @@ o hostname da API:
 ```yaml
 ingress:
   - hostname: devdraw-api.gustavohdev.com.br
-    service: http://localhost:8085
+    service: http://localhost:8086
   # ... demais entradas existentes
 ```
 
@@ -144,7 +144,7 @@ docker compose -f docker-compose.prod.yml restart devdraw-api
 |---|---|
 | `devdraw-api` | Backend NestJS (porta 8080 interna) |
 | `devdraw-postgres` | PostgreSQL 16 |
-| `devdraw-nginx` | Nginx reverse proxy (porta 8085 no host) |
+| `devdraw-nginx` | Nginx reverse proxy (porta 8086 no host) |
 | `devdraw-watchtower` | Auto-deploy — verifica `devdraw-api` no Docker Hub a cada 30s |
 
 ---
