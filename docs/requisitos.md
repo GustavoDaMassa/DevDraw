@@ -134,5 +134,5 @@ Foco em organização hierárquica por projetos, colaboração multi-usuário e 
 | 8 | Domínio Projects + refatoração de Nodes (project_id) + membros + convites | ✅ |
 | 9 | Módulo de colaboração em tempo real (WebSockets + @tldraw/sync + Y.js) | ✅ |
 | 10 | Migrations V2 (projects, project_members, invitations; nodes.project_id) + testes de integração | ✅ |
-| 11 | Testes de integração (colaboração WebSocket) | — |
+| 11 | Testes de integração (colaboração WebSocket) | ✅ |
 | 12 | Produção (Dockerfile, CI/CD, deploy no home server) | — |
